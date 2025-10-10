@@ -1,0 +1,18 @@
+[
+    {
+        "question": "Hi",
+        "answer": "Hello! I'm FastBot, How can I help you today?"
+    },
+    {
+        "question": "What are the BSCS admission requirements?",
+        "answer": "You need at least 60% marks in FSC Pre-Engineering."
+    },
+    {
+        "question": "What is the BBA admission requirement?",
+        "answer": "You need at least 60% marks in FSC (any group)."
+    },
+    {
+        "question": "What is the BSAF admission requirement?",
+        "answer": "You need at least 50% marks in FA."
+    }
+]

@@ -1,0 +1,26 @@
+.listening-indicator {
+    display: inline-block;
+    margin-left: 10px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: red;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.5);
+        opacity: 0.5;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
