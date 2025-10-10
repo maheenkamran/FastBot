@@ -1,0 +1,1 @@
+FastBot is an AI-powered admissions chatbot that combines conversational AI with Retrieval-Augmented Generation (RAG). It provides both predefined answers and context-aware responses by retrieving information from admission policies and documents. FastBot also supports voice-to-text, allowing students to ask questions verbally for a more accessible, user-friendly experience.
