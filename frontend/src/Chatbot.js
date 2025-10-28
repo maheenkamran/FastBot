@@ -1,5 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
+import axios from "axios"; //Imports Axios, a library for making HTTP requests (used to call your Django backend API).
 import './Chatbot.css';
 
 function Chatbot() {
@@ -8,14 +8,15 @@ function Chatbot() {
     const [listening, setListening] = useState(false);
 
     // Text-to-speech function
+    //using built-in browser APIs for both speech-to-text and text-to-speech
     const speak = (text) => {
-        if (!window.speechSynthesis) return;
-        const utterance = new SpeechSynthesisUtterance(text);
+        if (!window.speechSynthesis) return; //If the browser doesn’t support text-to-speech, don’t try to speak — just exit the function safely.
+        const utterance = new SpeechSynthesisUtterance(text); //creates a voice object
         utterance.lang = "en-US";
         utterance.pitch = 1;
         utterance.rate = 1.4;
         utterance.volume = 1;
-        window.speechSynthesis.speak(utterance);
+        window.speechSynthesis.speak(utterance); //plays the audio
     };
 
     // Function to send message to backend
@@ -23,7 +24,10 @@ function Chatbot() {
         if (!text) return;
 
         try {
-            const res = await axios.post("http://127.0.0.1:8000/api/ask/", { question: text });
+            const res = await axios.post("http://127.0.0.1:8000/api/ask/", {
+                question: text
+                //body of json request
+            });
             const botReply = res.data.answer;
 
             setMessages((prev) => [
@@ -31,6 +35,8 @@ function Chatbot() {
                 { sender: "user", text: text },
                 { sender: "bot", text: botReply }
             ]);
+            //Updates messages state to include all prev + new user message and bot reply.
+
             setInput("");
 
             if (shouldSpeak) speak(botReply); // only speak if flag is true (voice input)
@@ -53,14 +59,14 @@ function Chatbot() {
             return;
         }
 
-        const recognition = new SpeechRecognition();
-        recognition.continuous = false;
+        const recognition = new SpeechRecognition(); //Creates a SpeechRecognition object.
+        recognition.continuous = false; //stops automatically after user stops speaking.
         recognition.lang = "en-US";
 
         setListening(true);
         recognition.start();
 
-        recognition.onresult = (event) => {
+        recognition.onresult = (event) => { //when result is returned (some audio spoken)
             const transcript = event.results[0][0].transcript;
             setInput(transcript);
             sendMessage(transcript, true); // voice input: speak automatically
@@ -74,6 +80,7 @@ function Chatbot() {
         <div>
             <div>
                 {messages.map((m, i) => (
+                    //Loops over all messages and displays them.
                     <p key={i} style={{ display: "flex", alignItems: "center", gap: "5px" }}>
                         <b>{m.sender}:</b> {m.text}
                         {m.sender === "bot" && (
@@ -83,7 +90,7 @@ function Chatbot() {
                                 title="Listen"
                             >
                                 🔊
-                            </span>
+                            </span> //speaker icon 
                         )}
                     </p>
                 ))}
@@ -99,9 +106,7 @@ function Chatbot() {
             />
 
             <button onClick={() => sendMessage(input, false)}>Send</button>
-
-            <button onClick={handleVoice}>
-                🎤 Talk
+            <button onClick={handleVoice}>🎤 Talk
                 {listening && <span className="listening-indicator"></span>}
             </button>
         </div>

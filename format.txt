@@ -1,0 +1,38 @@
+FastBot/
+│
+├── backend/
+│   ├── chatbot/             ← Your Django app
+│   │   ├── rag/             ← RAG (Retrieval-Augmented Generation) logic
+│   │   │   ├── chain.py
+│   │   │   ├── config.py
+│   │   │   ├── data_loader.py
+│   │   │   ├── embeddings.py
+│   │   │   ├── retriever.py
+│   │   │   └── __init__.py
+│   │   ├── views.py
+│   │   ├── urls.py
+│   │   ├── models.py
+│   │   ├── apps.py
+│   │   ├── admin.py
+│   │   └── tests.py
+│   │
+│   ├── fastbot/             ← Django project settings
+│   │   ├── settings.py
+│   │   ├── urls.py
+│   │   ├── asgi.py
+│   │   └── wsgi.py
+│   │
+│   ├── manage.py
+│   └── venv/                ← ✅ Your virtual environment (Python packages live here)
+│
+├── docs/
+│   └── QA.json              ← Your question-answer dataset
+│
+├── frontend/
+│   ├── node_modules/
+│   ├── public/
+│   ├── src/
+│   ├── package.json
+│   └── package-lock.json
+└── venv/    
+└── .gitignore

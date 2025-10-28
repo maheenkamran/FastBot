@@ -18,7 +18,7 @@ dist/
 
 # Virtualenv
 venv/
-.env/
+.env
 
 # OS files
 .DS_Store
