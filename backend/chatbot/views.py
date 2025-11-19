@@ -1,99 +1,133 @@
-import os,json #Imports os for file path operations, Imports json to read/write JSON files (like your QA dataset)
-import numpy as np #for numerical operations, like vector embeddings and similarity calculations
+# backend/chatbot/views.py
+import os
+import json
+import numpy as np
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-from .rag.chain import ask_question
 
-# Global variables
-model = None                    #the sentence transformer model
-question_embeddings = None      #precomputed embeddings for all questions
-questions = []                  #list of questions from QA dataset
-answers = []                    #corresponding answers
+from .rag.chain import ask_question, initialize_rag
 
-# A SentenceTransformer is a pretrained model from the sentence-transformers library.
-#It converts sentences or paragraphs into dense numerical vectors (embeddings).
+# ---------------------------
+# Optional: preload models & RAG on import
+# ---------------------------
+# If this takes too long, you can call /preload/ route instead
+try:
+    initialize_rag()
+except Exception as exc:
+    print(f"[views] initialize_rag() raised: {exc}")
 
-def load_model_once():
-    #Load model and QA data into memory once 
-    
+# ---------------------------
+# Original variables from your code (for embedding approach)
+# ---------------------------
+model = None                    # SentenceTransformer model
+question_embeddings = None      # Precomputed embeddings
+questions = []                  # List of questions
+answers = []                    # Corresponding answers
+
+def load_model_once(force_reload=False):
+    """
+    Loads the model and QA dataset into memory once, or reload if force_reload=True
+    """
     global model, question_embeddings, questions, answers
-    if model is not None: #If the model is already loaded, do nothing (prevents reloading)
+    if model is not None and not force_reload:
         return
 
     print("⏳ Preloading model and QA data...")
-    from sentence_transformers import SentenceTransformer #Imports the SentenceTransformer model class (used for embeddings)
+    from sentence_transformers import SentenceTransformer
 
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    #file:the current Python file where this line is written.,s.path.abspath(__file__) → full absolute path to that file. 
-    # #os.path.dirname(...) → the directory containing that file. which is backend folder here
-    
     json_path = os.path.abspath(os.path.join(BASE_DIR, "..", "..", "docs", "QA.json"))
-    #Goes two folders up(..,..) and then into docs
 
     model = SentenceTransformer("paraphrase-MiniLM-L6-v2")
-    #Loads the pre-trained sentence transformer model for embeddings.
 
-    #Opens QA.json 
     with open(json_path, "r", encoding="utf-8") as f:
-        qa_pairs = json.load(f) #loads it into list of dictionaries (qa_pairs)
-        
-    #Extracts questions and answers into separate lists
+        qa_pairs = json.load(f)
+
     questions = [pair["question"] for pair in qa_pairs]
     answers = [pair["answer"] for pair in qa_pairs]
-    
-    question_embeddings = np.array( #np.array makes 2d array (array of vectors)
+
+    question_embeddings = np.array(
         model.encode(questions, convert_to_tensor=False, normalize_embeddings=True)
     )
-    #Converts all questions into embeddings using the model.
-    #normalize_embeddings=True ensures cosine similarity can be computed using dot product.
     print("✅ Model preloaded successfully!\n")
 
-def preload(request):
-    load_model_once()
-    return HttpResponse("✅ Model preloaded successfully!")
-#for now we have done preload thing, afterwards we'll do loading as server starts
-
-@csrf_exempt
-def ask(request):
-    global model, question_embeddings, questions, answers
-
-    if model is None:
-        return JsonResponse({"error": "Model not loaded yet. Visit /preload/ first."}, status=503)
-
-    if request.method == "POST":
-        try:
-            data = json.loads(request.body)
-        except json.JSONDecodeError:
-            return JsonResponse({"error": "Invalid JSON"}, status=400)
-
-        query = data.get("question", "").strip() #frontend post request body having question field, we are getting its value
-        #question: "bscs requirement?", here question is key and "bscs requirement?" is value, we gwt value of question
-        if not query:
-            return JsonResponse({"error": "No question provided"}, status=400)
-
-        query_embedding = model.encode([query], convert_to_tensor=False, normalize_embeddings=True)[0]#Converts user query into an embedding.
-        scores = np.dot(question_embeddings, query_embedding) #Computes dot product similarity with all preloaded question embeddings.(scores is array)
-        best_idx = int(np.argmax(scores)) #Finds the index of the best match (best_idx), which has highest cosine similarity (dot product)
-        
-        print("Query received:", query)
-        print("Best match:", questions[best_idx], "| Score:", scores[best_idx])
-
-        response = {
-            "answer": answers[best_idx],
-            "matched_question": questions[best_idx],
-            "score": float(scores[best_idx])
-        }
-        return JsonResponse(response)
-
-    return JsonResponse({"error": "Only POST allowed"}, status=405)
-
-def chatbot_response(request):
-    query = request.GET.get("q")
-    if query:
-        answer = ask_question(query)
-        return JsonResponse({"answer": answer})
-    return JsonResponse({"error": "No question provided"}, status=400)
-
+# ---------------------------
+# Routes / Views
+# ---------------------------
 def index(request):
     return HttpResponse("Hello from backend!")
 
+@csrf_exempt
+def preload(request):
+    """
+    Preloads model & RAG logic.
+    """
+    try:
+        # Initialize RAG
+        initialize_rag(force_reload=True)
+        # Also load original model QA embeddings
+        load_model_once(force_reload=True)
+        return HttpResponse("✅ Model & RAG preloaded successfully!")
+    except Exception as exc:
+        return JsonResponse({"error": str(exc)}, status=500)
+
+@csrf_exempt
+def ask(request):
+    """
+    POST endpoint expecting JSON: { "question": "..." }
+    Supports both RAG approach and original embeddings approach.
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Only POST allowed"}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    query = data.get("question", "").strip()
+    if not query:
+        return JsonResponse({"error": "No question provided"}, status=400)
+
+    # Try RAG first
+    try:
+        answer_rag = ask_question(query)
+    except Exception as exc:
+        print(f"[views.ask] RAG failed: {exc}")
+        answer_rag = None
+
+    # Fall back to original embedding-based QA
+    try:
+        load_model_once()
+        query_embedding = model.encode([query], convert_to_tensor=False, normalize_embeddings=True)[0]
+        scores = np.dot(question_embeddings, query_embedding)
+        best_idx = int(np.argmax(scores))
+        answer_embed = answers[best_idx]
+    except Exception as exc:
+        print(f"[views.ask] Embedding fallback failed: {exc}")
+        answer_embed = None
+        best_idx = None
+        scores = [0]
+
+    response = {
+        "answer": answer_rag if answer_rag else answer_embed,
+        "matched_question": questions[best_idx] if best_idx is not None else None,
+        "score": float(scores[best_idx]) if best_idx is not None else None
+    }
+
+    return JsonResponse(response)
+
+def chatbot_response(request):
+    """
+    Legacy GET endpoint for quick testing: ?q=your_question
+    """
+    query = request.GET.get("q")
+    if not query:
+        return JsonResponse({"error": "No question provided"}, status=400)
+
+    try:
+        answer = ask_question(query)
+        return JsonResponse({"answer": answer})
+    except Exception as exc:
+        print(f"[views.chatbot_response] error: {exc}")
+        return JsonResponse({"error": "Internal server error"}, status=500)
