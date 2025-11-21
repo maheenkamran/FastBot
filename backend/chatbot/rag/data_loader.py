@@ -1,5 +1,4 @@
 from pathlib import Path
-
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.schema import Document
 from typing import List

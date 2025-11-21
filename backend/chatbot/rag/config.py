@@ -17,7 +17,6 @@ FAQ_SIM_THRESHOLD = 0.74
 # Retriever / RAG settings
 RETRIEVAL_TOP_K = 5  # Increased from 4 to get more context
 
-# Ollama model name - llama3.2:1b is very small, consider upgrading
 OLLAMA_MODEL = "phi3:mini"
 
 # System prompt — simplified and more direct for small models
