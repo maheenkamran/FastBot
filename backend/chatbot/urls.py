@@ -3,7 +3,7 @@ from . import views
 
 urlpatterns = [
     path('', views.index, name='index'),
-    path('api/ask/', views.ask, name='ask'),
-    path('preload/', views.preload, name='preload'),# 👈 new route
-    path('chat/', views.chatbot_response, name='chatbot_response')
+    path('preload/', views.preload, name='preload'),
+    path('ask/', views.ask, name='ask'),
+    path('chat/', views.chat_endpoint, name='chat_endpoint'),  # Changed from chatbot_response
 ]

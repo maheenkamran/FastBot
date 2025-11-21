@@ -1,12 +1,13 @@
-import Chatbot from "./Chatbot";
+import React from 'react';
+import Chatbot from './components/Chatbot';
+
 
 function App() {
-  return (
-    <div className="App">
-      <h1>Admission Chatbot</h1>
-      <Chatbot />
-    </div>
-  );
+    return (
+        <div className="App">
+            <Chatbot />
+        </div>
+    );
 }
 
 export default App;

@@ -1,22 +1,33 @@
-''' A config file (short for configuration file) is a file used to store settings or constants that your program 
-needs — things that don't usually change during execution.
-So instead of hardcoding these values in multiple places, you keep them in one file — 
-making your code cleaner, reusable, and easier to update. '''
-
+from pathlib import Path
 import os
-#provides functions to interact with the operating system.
-#Used here for working with file paths 
 
-# Get the absolute path to the project root (the main FastBot folder)
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname((os.path.dirname(os.path.abspath(__file__))))))
-# os.path.abspath(__file__) gives full path of file
-# 4 times step to root folder 
+BASE_DIR = Path(__file__).resolve().parents[3]
 
-DATA_PATH = os.path.join(BASE_DIR, "docs", "QA.pdf")  #joins path via \ like docs\QA.pdf
-           
-VECTOR_DB_PATH = os.path.join(BASE_DIR, "backend", "chatbot", "rag", "chroma_db")
+# Data and storage paths
+DATA_DIR = BASE_DIR / "backend" / "chatbot" / "rag" / "data"
+FAQ_PATH = BASE_DIR / "docs" / "QA.json"
+CHROMA_PERSIST_DIR = BASE_DIR / "backend" / "chatbot" / "rag" / "chroma_db"
 
+# Embeddings model (local sentence-transformer)
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
-#constants(caps+_) string storing name of our model
 
-QA_MODEL = "deepset/roberta-base-squad2"
+# FAQ similarity threshold (tune)
+FAQ_SIM_THRESHOLD = 0.74
+
+# Retriever / RAG settings
+RETRIEVAL_TOP_K = 5  # Increased from 4 to get more context
+
+# Ollama model name - llama3.2:1b is very small, consider upgrading
+OLLAMA_MODEL = "phi3:mini"
+
+# System prompt — simplified and more direct for small models
+SYSTEM_PROMPT = """You are FastBot, a helpful assistant for FAST-NUCES university.
+
+IMPORTANT RULES:
+1. Answer ONLY based on the context provided below
+2. Be concise and direct
+3. If the answer is not in the context, say: "I don't have that information in the documents provided"
+4. Do not make up or invent any information
+5. Use simple, clear language
+
+Answer the user's question using the provided context."""

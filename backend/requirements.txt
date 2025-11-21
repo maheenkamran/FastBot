@@ -1,0 +1,12 @@
+Django>=4.2
+langchain>=0.1.0,<1.0.0
+ollama>=0.1.0
+chromadb>=0.3.27
+sentence-transformers>=2.2.2
+langchain-huggingface>=0.4.0
+pypdf>=3.15.0
+python-dotenv>=1.0.0
+tqdm
+numpy
+scikit-learn
+uvicorn

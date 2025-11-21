@@ -68,7 +68,6 @@ class OllamaWrapper:
                 )
                 
                 print(f"[DEBUG] Raw response type: {type(resp)}")
-                print(f"[DEBUG] Raw response keys: {resp.keys() if isinstance(resp, dict) else 'not a dict'}")
                 
                 if isinstance(resp, dict):
                     # Extract the actual text response
@@ -82,15 +81,31 @@ class OllamaWrapper:
                         return "I apologize, but I couldn't generate a proper response. Please try again."
                     
                     # Remove trailing metadata/debug info
-                    # Sometimes responses include logprobs or other metadata at the end
                     if "logprobs=" in answer:
                         answer = answer.split("logprobs=")[0].strip()
                     
-                    if "\nSources:" in answer:
-                        # Sources line should be preserved
-                        pass
+                    # Clean up lines that look like token IDs or metadata
+                    lines = answer.split('\n')
+                    clean_lines = []
                     
-                    return answer.strip()
+                    for line in lines:
+                        line = line.strip()
+                        # Skip lines that are mostly numbers/commas (token IDs)
+                        if len(line) > 20 and sum(c.isdigit() or c == ',' or c == ' ' for c in line) / len(line) > 0.7:
+                            print(f"[DEBUG] Skipping suspicious line: {line[:50]}...")
+                            continue
+                        # Skip metadata lines
+                        if line.startswith('[') or line.startswith('(') or 'logprobs=' in line:
+                            continue
+                        if line:
+                            clean_lines.append(line)
+                    
+                    answer = '\n'.join(clean_lines).strip()
+                    
+                    if not answer:
+                        return "I couldn't generate a proper response. Please try rephrasing your question."
+                    
+                    return answer
                 else:
                     print(f"[ERROR] Unexpected response type: {type(resp)}")
                     return "I apologize, but I received an unexpected response format."
