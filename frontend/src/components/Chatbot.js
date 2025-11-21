@@ -1,47 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { sendChatMessage } from '../services/api';
+import './Chatbot.css';
 
-function Chatbot() {
-    const [messages, setMessages] = useState([]);
+const Chatbot = () => {
+    const [messages, setMessages] = useState([
+        { role: 'assistant', text: 'Hi! I\'m FastBot 🎓 Ask me anything about FAST-NUCES!' }
+    ]);
     const [input, setInput] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
     const [conversationId, setConversationId] = useState(null);
-    const [loading, setLoading] = useState(false);
+    const messagesEndRef = useRef(null);
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages]);
 
     const handleSend = async () => {
-        if (!input.trim()) return;
+        if (!input.trim() || isLoading) return;
 
-        // Add user message to chat
-        const userMessage = { role: 'user', text: input };
-        setMessages(prev => [...prev, userMessage]);
+        const userMessage = input.trim();
         setInput('');
-        setLoading(true);
+        setMessages(prev => [...prev, { role: 'user', text: userMessage }]);
+        setIsLoading(true);
 
         try {
-            // Send to backend
-            const response = await sendChatMessage(input, conversationId);
-            
-            // Store conversation ID for follow-up messages
-            if (!conversationId) {
-                setConversationId(response.conversation_id);
-            }
-
-            // Add assistant message to chat
-            const assistantMessage = {
-                role: 'assistant',
+            const response = await sendChatMessage(userMessage, conversationId);
+            setConversationId(response.conversation_id);
+            setMessages(prev => [...prev, { 
+                role: 'assistant', 
                 text: response.answer,
-                usedFaq: response.used_faq,
-                sources: response.sources
-            };
-            setMessages(prev => [...prev, assistantMessage]);
+                sources: response.sources 
+            }]);
         } catch (error) {
-            const errorMessage = {
-                role: 'assistant',
-                text: 'Sorry, something went wrong. Please try again.',
-                error: true
-            };
-            setMessages(prev => [...prev, errorMessage]);
+            setMessages(prev => [...prev, { 
+                role: 'assistant', 
+                text: 'Sorry, I encountered an error. Please try again.',
+                isError: true 
+            }]);
         } finally {
-            setLoading(false);
+            setIsLoading(false);
         }
     };
 
@@ -52,94 +53,118 @@ function Chatbot() {
         }
     };
 
+    const suggestedQuestions = [
+        "What are the admission requirements?",
+        "Tell me about fee structure",
+        "What programs are offered?",
+        "Hostel facilities available?"
+    ];
+
     return (
-        <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
-            <h1>FAST-NUCES Chatbot</h1>
-            
-            {/* Chat Messages */}
-            <div style={{
-                border: '1px solid #ccc',
-                borderRadius: '8px',
-                padding: '20px',
-                height: '500px',
-                overflowY: 'auto',
-                marginBottom: '20px',
-                backgroundColor: '#f9f9f9'
-            }}>
-                {messages.map((msg, index) => (
-                    <div key={index} style={{
-                        marginBottom: '15px',
-                        textAlign: msg.role === 'user' ? 'right' : 'left'
-                    }}>
-                        <div style={{
-                            display: 'inline-block',
-                            padding: '10px 15px',
-                            borderRadius: '8px',
-                            backgroundColor: msg.role === 'user' ? '#007bff' : '#e9ecef',
-                            color: msg.role === 'user' ? 'white' : 'black',
-                            maxWidth: '70%',
-                            textAlign: 'left'
-                        }}>
-                            <strong>{msg.role === 'user' ? 'You' : 'Bot'}:</strong>
-                            <p style={{ margin: '5px 0', whiteSpace: 'pre-wrap' }}>
-                                {msg.text}
-                            </p>
-                            {msg.sources && msg.sources.length > 0 && (
-                                <small style={{ 
-                                    display: 'block', 
-                                    marginTop: '5px',
-                                    opacity: 0.8,
-                                    fontStyle: 'italic'
-                                }}>
-                                    {msg.usedFaq ? '📚 From FAQ' : `📄 ${msg.sources.join(', ')}`}
-                                </small>
-                            )}
+        <div className="chatbot-container">
+            {/* Header */}
+            <div className="chatbot-header">
+                <div className="header-content">
+                    <div className="logo-section">
+                        <div className="logo-icon">🤖</div>
+                        <div className="logo-text">
+                            <h1>FastBot</h1>
+                            <span className="status">
+                                <span className="status-dot"></span>
+                                Online
+                            </span>
                         </div>
                     </div>
-                ))}
-                {loading && (
-                    <div style={{ textAlign: 'center', color: '#999' }}>
-                        Bot is typing...
-                    </div>
-                )}
+                    <p className="tagline">Your FAST-NUCES Assistant</p>
+                </div>
             </div>
 
+            {/* Messages Area */}
+            <div className="messages-container">
+                {messages.map((msg, idx) => (
+                    <div key={idx} className={`message ${msg.role}`}>
+                        {msg.role === 'assistant' && (
+                            <div className="avatar assistant-avatar">🤖</div>
+                        )}
+                        <div className={`message-bubble ${msg.role} ${msg.isError ? 'error' : ''}`}>
+                            <p>{msg.text}</p>
+                            {msg.sources && msg.sources.length > 0 && msg.sources[0] !== 'FAQ' && (
+                                <div className="sources">
+                                    <span className="sources-label">📚 Sources:</span>
+                                    {msg.sources.map((src, i) => (
+                                        <span key={i} className="source-tag">{src}</span>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        {msg.role === 'user' && (
+                            <div className="avatar user-avatar">👤</div>
+                        )}
+                    </div>
+                ))}
+                
+                {isLoading && (
+                    <div className="message assistant">
+                        <div className="avatar assistant-avatar">🤖</div>
+                        <div className="message-bubble assistant typing">
+                            <div className="typing-indicator">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                <div ref={messagesEndRef} />
+            </div>
+
+            {/* Suggested Questions */}
+            {messages.length <= 1 && (
+                <div className="suggestions">
+                    <p className="suggestions-title">Try asking:</p>
+                    <div className="suggestion-chips">
+                        {suggestedQuestions.map((q, idx) => (
+                            <button 
+                                key={idx} 
+                                className="suggestion-chip"
+                                onClick={() => setInput(q)}
+                            >
+                                {q}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* Input Area */}
-            <div style={{ display: 'flex', gap: '10px' }}>
-                <input
-                    type="text"
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="Ask a question about FAST-NUCES..."
-                    style={{
-                        flex: 1,
-                        padding: '12px',
-                        fontSize: '16px',
-                        borderRadius: '4px',
-                        border: '1px solid #ccc'
-                    }}
-                    disabled={loading}
-                />
-                <button
-                    onClick={handleSend}
-                    disabled={loading || !input.trim()}
-                    style={{
-                        padding: '12px 24px',
-                        fontSize: '16px',
-                        borderRadius: '4px',
-                        backgroundColor: '#007bff',
-                        color: 'white',
-                        border: 'none',
-                        cursor: loading ? 'not-allowed' : 'pointer',
-                        opacity: loading ? 0.6 : 1
-                    }}
-                >
-                    Send
-                </button>
+            <div className="input-container">
+                <div className="input-wrapper">
+                    <input
+                        type="text"
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyPress={handleKeyPress}
+                        placeholder="Ask me about FAST-NUCES..."
+                        disabled={isLoading}
+                    />
+                    <button 
+                        onClick={handleSend} 
+                        disabled={!input.trim() || isLoading}
+                        className="send-button"
+                    >
+                        {isLoading ? (
+                            <span className="loading-spinner"></span>
+                        ) : (
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M22 2L11 13M22 2L15 22L11 13M11 13L2 9L22 2" />
+                            </svg>
+                        )}
+                    </button>
+                </div>
+                <p className="disclaimer">FastBot may make mistakes. Verify important information.</p>
             </div>
         </div>
     );
-}
+};
 
 export default Chatbot;
